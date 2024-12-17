@@ -1,29 +1,84 @@
-@Library('Shared')_
-pipeline{
-    agent { label 'dev-server'}
-    
-    stages{
-        stage("Code clone"){
-            steps{
-                sh "whoami"
-            clone("https://github.com/LondheShubham153/django-notes-app.git","main")
+@Library("Shared") _
+
+pipeline {
+    agent { label 'ali' }
+
+    stages {
+        stage("Hello") {
+            steps {
+                script {
+                    hello()
+                }
             }
         }
-        stage("Code Build"){
-            steps{
-            dockerbuild("notes-app","latest")
+
+        stage("Clone") {
+            steps {
+                script {
+                    clone("https://github.com/Hasoon-hub/Django-notes-app.git", "main")
+                }
             }
         }
-        stage("Push to DockerHub"){
-            steps{
-                dockerpush("dockerHubCreds","notes-app","latest")
+
+        stage("Test") {
+            steps {
+                echo "Running tests..."
             }
         }
-        stage("Deploy"){
-            steps{
-                deploy()
+
+        stage('Build') {
+            steps {
+                script {
+                    docker_build("notes-app", "latest", "hasoon")
+                }
             }
         }
-        
+
+        stage("Push to DockerHub") {
+            steps {
+                script {
+                    docker_push("notes-app", "latest", "hasoon")
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying the application...'
+                sh '''
+                    if [ "$(docker ps -aq -f name=db_cont)" ]; then
+                        echo "Removing existing db_cont container..."
+                        docker rm -f db_cont
+                    else
+                        echo "db_cont does not exist. Skipping removal."
+                    fi
+
+                    if [ "$(docker ps -aq -f name=django_cont)" ]; then
+                        echo "Removing existing django_cont container..."
+                        docker rm -f django_cont
+                    else
+                        echo "django_cont does not exist. Skipping removal."
+                    fi
+
+                    if [ "$(docker ps -aq -f name=nginx_cont)" ]; then
+                        echo "Removing existing nginx_cont container..."
+                        docker rm -f nginx_cont
+                    else
+                        echo "nginx_cont does not exist. Skipping removal."
+                    fi
+
+                    docker-compose up -d
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
     }
 }
