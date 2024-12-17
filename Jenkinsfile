@@ -67,7 +67,7 @@ pipeline {
                         echo "nginx_cont does not exist. Skipping removal."
                     fi
 
-                    docker-compose up -d
+                    docker-compose down && docker-compose up -d
                 '''
             }
         }
